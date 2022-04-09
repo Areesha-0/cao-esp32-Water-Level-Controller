@@ -1,9 +1,10 @@
+#define LED_BUILTIN 22
 void setup() {
-  // put your setup code here, to run once:
-
+  pinMode(LED_BUILTIN, OUTPUT);
 }
-
 void loop() {
-  // put your main code here, to run repeatedly:
-
+  digitalWrite(LED_BUILTIN, HIGH); //led on
+  delay(1000); //half a second
+  digitalWrite(LED_BUILTIN, LOW); //led off
+  delay(1000);
 }
