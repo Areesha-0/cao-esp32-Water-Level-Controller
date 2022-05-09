@@ -1,23 +1,45 @@
-void setup() {
-  pinMode(2, OUTPUT);//d2 is output pin connected to trig
-  pinMode(4, INPUT);//d4 is input pin connected to echo
-  Serial.begin(9600);//enables serial monitor to display values
+const int trigPin = 33;
+const int echoPin = 32;
 
-}
-void loop() {
-  //pulse output
-  digitalWrite(2, LOW); //output pin set to low
+//define sound speed in cm/uS
+#define SOUND_SPEED 0.034
+#define CM_TO_INCH 0.393701
+
+long duration;
+int distance; //in centimeter
+
+void ultrasonic_sensor(){
+   // Clears the trigPin
+  digitalWrite(trigPin, LOW);
   delayMicroseconds(2);
-  digitalWrite(2, HIGH); //output pin set to high
+  // Sets the trigPin on HIGH state for 10 micro seconds
+  digitalWrite(trigPin, HIGH);
   delayMicroseconds(10);
-  digitalWrite(2, LOW);
+  digitalWrite(trigPin, LOW);
   
-  long t = pulseIn(4, HIGH);//input pulse time from d4 and save it variable
+  // Reads the echoPin, returns the sound wave travel time in microseconds
+  duration = pulseIn(echoPin, HIGH);
   
-  long cm = t / 29 / 2; //time convert distance
-  String CM = " cm";
+  // Calculate the distance -> cm
+  distance = duration * SOUND_SPEED/2;
+
+  if(distance == 7)
+  {
+    Serial.print("tank is full");
+  }
+ 
+  // Prints the distance in the Serial Monitor
+  Serial.print("Distance (cm): ");
+  Serial.println(distance);
   
-  Serial.println(cm +CM);//print serial monitor cm
-  Serial.println();//print space
-  delay(1000);//delay
+  delay(1000);
+}
+void setup() {
+  Serial.begin(115200); // Starts the serial communication
+  pinMode(trigPin, OUTPUT); // Sets the trigPin as an Output
+  pinMode(echoPin, INPUT); // Sets the echoPin as an Input
+}
+
+void loop() {
+  ultrasonic_sensor();
 }
