@@ -1,8 +1,7 @@
 const int relay = 26;
 void setup()
 {     
-  Serial.begin(115200);
-//  Blynk.begin(auth, ssid, pass);    
+  Serial.begin(115200);  
   pinMode(relay,OUTPUT);
 }
 
