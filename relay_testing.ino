@@ -1,18 +1,21 @@
-//testing the 5v relay 
-bool pinValue = 0;
-#define relay D5
- 
-void setup() {
-  pinMode(relay, OUTPUT); //setting pin
-  Serial.begin(9600);
+const int relay = 26;
+void setup()
+{     
+  Serial.begin(115200);
+//  Blynk.begin(auth, ssid, pass);    
+  pinMode(relay,OUTPUT);
 }
 
-void Wlevel() {
-  //relay on and off working
-  if (pinValue == 1) { 
-    digitalWrite(relay, LOW);
-  } else if (pinValue == 0) {
-    digitalWrite(relay, HIGH);
-  }
-  Serial.println(cm);
-}
+void loop()
+{
+  //Using normally closed configuration on relay 
+  digitalWrite(relay, LOW);
+  Serial.print("Current not flowing");
+
+  delay(1000); //turns off for a second
+
+  digitalWrite(relay, HIGH);
+  Serial.print("Current flowing");
+
+  delay(5000); //turns on for five seconds
+ }
