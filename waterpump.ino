@@ -23,6 +23,12 @@ double water_level;
 const int trigPin = 33;
 const int echoPin = 32;
 const int relay = 13;
+int relay_state = 0; //turns off at zero
+
+BLYNK_WRITE(V1){
+  relay_state = param.asInt();
+  digitalWrite(relay, relay_state);
+}
 
 void ultrasonic_sensor(){
    // Clears the trigPin
@@ -41,15 +47,16 @@ void ultrasonic_sensor(){
   water_level = (water_level / tank_depth) * 100 ; //calculating percentage of water present in the tank
   
   // Prints the distance from water level to top of tank and water level on the Serial Monitor
-  Serial.print("thank height left (cm): ");
+  Serial.print("tank height left (cm): ");
   Serial.println(wave_distance);
-  Serial.print("water level: ");
+  Serial.print("water level in %: ");
   Serial.println(water_level);
   
   //turns relay off if the tank is about to be full automatically !but not the button on blynk!
   if(water_level >= 95){
     Serial.print("tank is full");
     digitalWrite(relay, LOW);
+    Blynk.virtualWrite(V1, 0);
   }
  
   Blynk.virtualWrite(V0, water_level);
@@ -59,6 +66,7 @@ void ultrasonic_sensor(){
 //updates latest virtual pin value stored on server 
 BLYNK_CONNECTED(){
   Blynk.syncVirtual(V0);
+  Blynk.syncVirtual(V1);
 }
 
 void setup() {
