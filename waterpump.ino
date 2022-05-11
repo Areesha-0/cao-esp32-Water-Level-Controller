@@ -18,16 +18,39 @@ char pass[] = "asif1972";
 
 long duration;
 long wave_distance; //in centimeter
-long tank_depth = 100;
+long tank_depth = 0;
 double water_level;
 const int trigPin = 33;
 const int echoPin = 32;
 const int relay = 13;
 int relay_state = 0; //turns off at zero
+int button_state = 0; //turns off at zero
+int tanklevel_50 = 0; //turns off at zero
+int tanklevel_30 = 0; //turns off at zero
+int tanklevel_75 = 0; //turns off at zero
 
 BLYNK_WRITE(V1){
   relay_state = param.asInt();
   digitalWrite(relay, relay_state);
+}
+
+BLYNK_WRITE(V2){
+  button_state = param.asInt(); //button for measuring tank's height
+}
+
+BLYNK_WRITE(V3){
+  tanklevel_50 = param.asInt(); //button for turning the tank on/off at 50% water level
+  digitalWrite(relay, tanklevel_50);
+}
+
+BLYNK_WRITE(V4){
+  tanklevel_30 = param.asInt(); //button for turning the tank on/off at 30% water level
+  digitalWrite(relay, tanklevel_30);
+}
+
+BLYNK_WRITE(V5){
+  tanklevel_75 = param.asInt(); //button for turning the tank on/off at 75% water level
+  digitalWrite(relay, tanklevel_75);
 }
 
 void ultrasonic_sensor(){
@@ -38,35 +61,76 @@ void ultrasonic_sensor(){
   digitalWrite(trigPin, HIGH);
   delayMicroseconds(10);
   digitalWrite(trigPin, LOW);
-  
   // Reads the echoPin, returns the sound wave travel time in microseconds
   duration = pulseIn(echoPin, HIGH);
   
   wave_distance = duration * SOUND_SPEED/2; //distance (cm) from water level to the top of the tank
-  water_level = tank_depth - wave_distance;
-  water_level = (water_level / tank_depth) * 100 ; //calculating percentage of water present in the tank
-  
-  // Prints the distance from water level to top of tank and water level on the Serial Monitor
-  Serial.print("tank height left (cm): ");
-  Serial.println(wave_distance);
-  Serial.print("water level in %: ");
-  Serial.println(water_level);
-  
-  //turns relay off if the tank is about to be full automatically !but not the button on blynk!
-  if(water_level >= 95){
-    Serial.print("tank is full");
-    digitalWrite(relay, LOW);
-    Blynk.virtualWrite(V1, 0);
+
+  if(button_state == 1) {
+        int measured_tankDepth = wave_distance; //tank height measurement if its empty
+        tank_depth = measured_tankDepth;
+        Serial.println(tank_depth);
+        if(button_state == 0) Blynk.virtualWrite(V2,0);
   }
- 
-  Blynk.virtualWrite(V0, water_level);
-  delay(1000);
+  
+  else{
+        water_level = tank_depth - wave_distance;
+        water_level = (water_level / tank_depth) * 100 ; //calculating percentage of water present in the tank
+        
+        // Prints the distance from water level to top of tank and water level on the Serial Monitor
+        Serial.print("tank depth: ");
+        Serial.println(tank_depth);
+        Serial.print("tank height left (cm): ");
+        Serial.println(wave_distance);
+        Serial.print("water level in %: ");
+        Serial.println(water_level);
+        
+        //turns relay off if the tank is about to be full automatically
+        if(water_level >= 95){
+          Serial.print("Tank is full");
+          digitalWrite(relay, LOW);
+          Blynk.virtualWrite(V1, 0); //shows switch off on the app
+        }
+
+        Serial.println(tanklevel_30);
+        Serial.println(tanklevel_50);
+        Serial.println(tanklevel_75);
+        
+        if(tanklevel_30 == 1 && water_level >= 30) {
+           Blynk.virtualWrite(V4,0); //button also turns off on the app
+           tanklevel_30 = 0;
+           digitalWrite(relay, tanklevel_30); //water pump turned off on said percetage of water in the tank
+           Serial.print("Tank is 30% full");
+        }
+        
+        if(tanklevel_50 == 1 && water_level >= 50){
+            Blynk.virtualWrite(V3,0); //button also turns off on the app
+            tanklevel_50 = 0;
+            digitalWrite(relay, tanklevel_50); //water pump turned off on said percetage of water in the tank
+            Serial.print("Tank is 50% full");
+        }
+          
+        if(tanklevel_75 == 1 && water_level >= 75) {
+           Blynk.virtualWrite(V5,0); //button also turns off on the app
+           tanklevel_75 = 0;
+           digitalWrite(relay, tanklevel_75); //water pump turned off on said percetage of water in the tank
+           Serial.print("Tank is 75% full");
+        }
+
+       
+        Blynk.virtualWrite(V0, water_level);
+        delay(1000);
+        }
 }
 
 //updates latest virtual pin value stored on server 
 BLYNK_CONNECTED(){
   Blynk.syncVirtual(V0);
   Blynk.syncVirtual(V1);
+  Blynk.syncVirtual(V2);
+  Blynk.syncVirtual(V3);
+  Blynk.syncVirtual(V4);
+  Blynk.syncVirtual(V5);
 }
 
 void setup() {
