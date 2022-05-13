@@ -54,7 +54,9 @@ BLYNK_WRITE(V5){
 }
 
 void ultrasonic_sensor(){
-   // Clears the trigPin
+
+ Blynk.logEvent("Calibrate the depth of your water tank");
+  // Clears the trigPin
   digitalWrite(trigPin, LOW);
   delayMicroseconds(2);
   // Sets the trigPin on HIGH state for 10 micro seconds
@@ -66,6 +68,7 @@ void ultrasonic_sensor(){
   
   wave_distance = duration * SOUND_SPEED/2; //distance (cm) from water level to the top of the tank
 
+  //setting depth of the tank
   if(button_state == 1) {
         int measured_tankDepth = wave_distance; //tank height measurement if its empty
         tank_depth = measured_tankDepth;
@@ -90,11 +93,12 @@ void ultrasonic_sensor(){
           Serial.print("Tank is full");
           digitalWrite(relay, LOW);
           Blynk.virtualWrite(V1, 0); //shows switch off on the app
+          Blynk.logEvent("Water tank is about to overflow");
         }
 
-        Serial.println(tanklevel_30);
-        Serial.println(tanklevel_50);
-        Serial.println(tanklevel_75);
+        if(water_level == 0) Blynk.logEvent("Your tank is empty");
+
+        if(water_level <= 10 && water_level > 0) Blynk.logEvent("Your tank is almost empty");
         
         if(tanklevel_30 == 1 && water_level >= 30) {
            Blynk.virtualWrite(V4,0); //button also turns off on the app
@@ -108,6 +112,7 @@ void ultrasonic_sensor(){
             tanklevel_50 = 0;
             digitalWrite(relay, tanklevel_50); //water pump turned off on said percetage of water in the tank
             Serial.print("Tank is 50% full");
+            Blynk.logEvent("50 percent of your tank is full");
         }
           
         if(tanklevel_75 == 1 && water_level >= 75) {
@@ -115,6 +120,7 @@ void ultrasonic_sensor(){
            tanklevel_75 = 0;
            digitalWrite(relay, tanklevel_75); //water pump turned off on said percetage of water in the tank
            Serial.print("Tank is 75% full");
+           Blynk.logEvent("75 percent of your tank is full");
         }
 
        
