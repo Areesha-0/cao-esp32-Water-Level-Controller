@@ -3,54 +3,77 @@
 #include<Ultrasonic.h>
 #include "SPIFFS.h"
 #include <Wire.h>
+#include <string.h>
 
 //network credentials
 const char* ssid = "muhammadasif7";
 const char* password = "asif1972";
 
-int relayGPIO = 13;
-const int trigPin = 33;
-const int echoPin = 32;
-const char* PARAM_INPUT_2 = "state";
+const int relay_pin = 13;
+// Stores relay state
+String relay_state;
+const char* PARAM_INPUT_1 = "input1"; //getting tank depth
+const char* PARAM_INPUT_2 = "input2"; //getting level until which the tank should be filled
+const int trig_pin = 33;
+const int echo_pin = 32;
+float tank_depth = 0;
+float water_level = 0; //calculated using the ultrasonic sensor
+float desired_waterlevel = 0; //given by user
 
-Ultrasonic ultrasonic_sensor(trigPin, echoPin);
+Ultrasonic ultrasonic_sensor(trig_pin, echo_pin);
 
 // Create AsyncWebServer object on port 80
 AsyncWebServer server(80);
 
-String relayState(){
-  if(digitalRead(relayGPIO)){
-    return "checked";
-  }
-  else{
-    return "";
-  }
-  return "";
+void notFound(AsyncWebServerRequest *request) {
+  request->send(404, "text/plain", "Not found");
 }
 
+// Replaces placeholder with relay's state value
 String processor(const String& var){
-  //Serial.println(var);
-  if(var == "BUTTONPLACEHOLDER"){
-    String button ="";
-    String relayStateValue = relayState();
-    button = "<h4> - GPIO " + String(relayGPIO)+ "</h4><label class=\"switch\"><input type=\"checkbox\" onchange=\"toggleCheckbox()\" "+ relayStateValue +"><span class=\"slider\"></span></label>";
-    return button;
+  Serial.println(var);
+  if(var == "STATE"){
+    if(digitalRead(relay_pin)){
+      relay_state = "ON";
+    }
+    else{
+      relay_state = "OFF";
+    }
+    Serial.print(relay_state);
+    return relay_state;
   }
   return String();
 }
 
 String get_waterlevel(){
   //read distance
-  float water_level = ultrasonic_sensor.read();
-
-  if(isnan(water_level)){
+  float distance_waterToTankTop = ultrasonic_sensor.read();
+  water_level = tank_depth - distance_waterToTankTop ;
+  water_level = (water_level / tank_depth) * 100;
+  
+  if(isnan(distance_waterToTankTop)){
      Serial.println("Did not get any reading from the ultrasonic sensor");
      return "";   
   }
-  else{
+  else{ 
+    if(water_level == desired_waterlevel){ //water is about to reach the limit set
+      digitalWrite(relay_pin, LOW);
+      Serial.println("motor turned off at desired water level");
+    }
+    
+    if(water_level >= 60){ //water is about to overflow then turn off the motor
+      digitalWrite(relay_pin, LOW);
+      Serial.println("motor was about to overflow");
+    }
+
+     Serial.println("desired water level (cm): ");
+     Serial.println(desired_waterlevel); //for the chart
      Serial.println("water level (cm): ");
-     Serial.println(water_level);
-     return String(water_level);
+     Serial.println(distance_waterToTankTop); //for the chart
+     Serial.println("water level %: ");
+     Serial.println(water_level); //for the chart
+     
+     return String(distance_waterToTankTop);
   }
 }
 
@@ -58,15 +81,15 @@ void setup(){
   // Serial port for debugging purposes
   Serial.begin(115200);
 
+  //relay is in NC configuration
+  pinMode(relay_pin, OUTPUT);
+  digitalWrite(relay_pin, LOW);
+
   // Initialize SPIFFS
   if (! SPIFFS.begin ()) {
     Serial.println ("An Error has occurred while mounting SPIFFS");
     return;
   }
-
-  //relay is in NC configuration
-  pinMode(relayGPIO, OUTPUT);
-  digitalWrite(relayGPIO, LOW);
 
   // Connect to Wi-Fi
   WiFi.begin(ssid, password);
@@ -78,7 +101,7 @@ void setup(){
   // Print ESP32 Local IP Address
   Serial.println(WiFi.localIP());
 
-  server.on("/", HTTP_GET, [](AsyncWebServerRequest *request){
+   server.on("/", HTTP_GET, [](AsyncWebServerRequest *request){
     request->send(SPIFFS, "/index.html");
   });
 
@@ -87,24 +110,55 @@ void setup(){
   });
 
   server.on("/", HTTP_GET, [](AsyncWebServerRequest *request){
-    request->send_P(200, "text/plain", processor("BUTTONPLACEHOLDER").c_str());
+    request->send(SPIFFS, "/index.html", String(), false, processor);
+  });
+  
+  // Route to set relay to HIGH
+  server.on("/motor_on", HTTP_GET, [](AsyncWebServerRequest *request){
+    digitalWrite(relay_pin, HIGH);    
+    request->send(SPIFFS, "/index.html", String(), false, processor);
+  });
+  
+  // Route to set GPIO to LOW
+  server.on("/motor_off", HTTP_GET, [](AsyncWebServerRequest *request){
+    digitalWrite(relay_pin, LOW);    
+    request->send(SPIFFS, "/index.html", String(), false, processor);
   });
 
-  // Send a GET request to <ESP_IP>/update?state=<inputMessage2>
-  server.on("/update", HTTP_GET, [] (AsyncWebServerRequest *request) {
-    String relay_state;
-    String inputParam2;
-    if (request->hasParam(PARAM_INPUT_2)) {
-      relay_state = request->getParam(PARAM_INPUT_2)->value();
-      inputParam2 = PARAM_INPUT_2;
-      digitalWrite(relayGPIO, relay_state.toInt());
+  // Send a GET request to <ESP_IP>/get?input1=<inputMessage>
+  server.on("/get", HTTP_GET, [] (AsyncWebServerRequest *request) {
+    String inputMessage;
+    String inputParam;
+    // GET input1 value on <ESP_IP>/get?input1=<inputMessage>
+    if (request->hasParam(PARAM_INPUT_1)) {
+      inputMessage = request->getParam(PARAM_INPUT_1)->value();
+      inputParam = PARAM_INPUT_1;
+      Serial.println("depth of the tank is: ");
+      Serial.println(inputMessage);
+      tank_depth = inputMessage.toFloat(); //setting tank depth for program
+      Serial.println(tank_depth);
     }
 
-    Serial.println("Motor's state (0->off/1->on): ");
-    Serial.println(relay_state);
-    request->send_P(200, "text/plain", "OK");
+    else if (request->hasParam(PARAM_INPUT_2)) {
+      inputMessage = request->getParam(PARAM_INPUT_2)->value();
+      inputParam = PARAM_INPUT_2;
+      Serial.println("Turn of the motor at water level (%): ");
+      Serial.println(inputMessage);
+      desired_waterlevel = inputMessage.toFloat(); //saving water level
+      Serial.println(desired_waterlevel);
+    }
+    
+    else {
+      inputMessage = "No message sent";
+      inputParam = "none";
+    }
+    request->send(200, "text/html", "HTTP GET request sent to your ESP on input field (" 
+                                     + inputParam + ") with value: " + inputMessage +
+                                     "<br><a href=\"/\">Return to Home Page</a>");
   });
+  
   // Start server
+  server.onNotFound(notFound);
   server.begin();
 }
   
