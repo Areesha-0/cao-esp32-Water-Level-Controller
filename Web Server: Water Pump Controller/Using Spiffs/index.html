@@ -3,24 +3,38 @@
 
 <head>
   <meta name="viewport" content="width=device-width, initial-scale=1">
+  <!-- CSS only -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.2.0-beta1/dist/css/bootstrap.min.css" rel="stylesheet"
+    integrity="sha384-0evHe/X+R7YkIZDRvuzKMRqM+OrBnVFBL6DOitfPri4tjfHxaWutUpFmBp4vmVor" crossorigin="anonymous">
+  <!-- JavaScript Bundle with Popper -->
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.0-beta1/dist/js/bootstrap.bundle.min.js"
+    integrity="sha384-pprn3073KE6tl6bjs2QrFaJGz5/SUsLqktiwsUTF55Jfv3qYSDhgCecCxMW52nD2"
+    crossorigin="anonymous"></script>
   <script src="https://code.highcharts.com/highcharts.js"></script>
   <style>
     body {
       min-width: 310px;
-      max-width: 800px;
-      height: 400px;
+      max-width: 900px;
       margin: 0 auto;
+      border-left: 2px solid black;
+      border-right: 2px solid black;
+      padding: 4%;
     }
 
+    h3,
+    h4,
     h2 {
+      color: rgb(61, 61, 61);
       font-family: Arial;
-      font-size: 2.5rem;
-      text-align: center;
+      font-size: 2.1rem;
+      padding: 1.5vh;
     }
 
     h1 {
-      color: #0F3376;
-      padding: 2vh;
+      color: black;
+      padding: 4vh;
+      text-align: center;
+      padding-bottom: 0;
     }
 
     p {
@@ -44,29 +58,77 @@
       background-color: #f44336;
     }
   </style>
+  <title>Water Tank Controller</title>
 </head>
 
 <body>
-  <h2>Water Pump On/Off</h2>
+  <h1>Water Tank Controller</h1>
+  <hr>
 
+  <h4>Enter Tank Depth to Get Started</h4>
+  <form action="/get">
+    <div class="form-group">
+      <label for="depth">Depth of Water Tank</label>
+      <input type="text" class="form-control" id="depth" aria-describedby="emailHelp" placeholder="Tank Depth (cm)"
+        name="input1" min="1" max="400" required>
+      <small id="depth_help" class="form-text text-warning">Please enter tank depth for smooth working of the
+        controller</small>
+    </div>
+    <button type="submit" class="btn btn-primary" value="Submit">Save</button>
+  </form>
+
+  <br>
+
+  <h4>Water Pump On/Off</h4>
   <p>Motor is <strong> %STATE%</strong></p>
   <p><a href="/motor_on"><button class="button">ON</button></a></p>
   <p><a href="/motor_off"><button class="button button2">OFF</button></a></p>
 
-  <form action="/get">
+  <!-- <a href="/motor_on" class="btn btn-primary btn-lg btn-outline-success" role="button" aria-pressed="true"> On
+  </a>
+  <a href="/motor_off" class="btn btn-primary btn-lg btn-outline-danger" role="button" aria-pressed="true"> Off
+  </a> -->
+
+  <br><br>
+
+  <!-- <form action="/get">
     Please enter the DEPTH of your water tank: <input type="text" name="input1" min="1" max="400" required>
     <input type="submit" value="Submit">
-  </form>
+  </form> -->
 
-  <br /><br />
-  <form action="/get">
+  <!-- <form action="/get">
     input2: <input type="text" name="input2">
     <input type="submit" value="Submit">
-  </form><br>
+  </form><br> -->
 
-  <h2>Water Level in the Tank (cm)</h2>
+  <p>
+  <h3>Current Water Level</h3>
+  <span id="water_level">%WATERLEVEL%</span>
+  <sup>&percnt;</sup>
+  </p>
 
+  <br>
+
+  <h4>Automate Your Motor</h4>
+  <h6>If you wish to automate your water tank, fill in the field below and turn on the motor</h6>
+  <form action="/get">
+    <div class="form-group">
+      <label for="depth">What percentage of tank do you wish to fill?</label>
+      <input type="text" class="form-control" id="waterlevel" aria-describedby="emailHelp"
+        placeholder="Water Level To Fill (%)" name="input2" min="1" max="100" required>
+      <small id="level_help" class="form-text text-warning">Enter water level according to the current capacity of the
+        tank.</small>
+    </div>
+    <button type="submit" class="btn btn-primary" value="Submit">Save</button>
+  </form>
+
+  <br>
+
+  <h4>Water Level in the Tank (cm)</h4>
   <div id="chart-distance" class="container"></div>
+  <br><br>
+  <hr>
+
 </body>
 
 <script>
@@ -89,7 +151,7 @@
       dateTimeLabelFormats: { second: '%H:%M:%S' }
     },
     yAxis: {
-      title: { text: 'Percentage (%) of tank filled' }
+      title: { text: 'Distance from top of tank to water level' }
     },
     credits: { enabled: false }
   });
@@ -111,6 +173,18 @@
     xhttp.open("GET", "/distance", true);
     xhttp.send();
   }, 3000);
+
+  setInterval(function () {
+    var xhttp = new XMLHttpRequest();
+    xhttp.onreadystatechange = function () {
+      if (this.readyState == 4 && this.status == 200) {
+        document.getElementById("water_level").innerHTML = this.responseText;
+      }
+    };
+    xhttp.open("GET", "/water_level", true);
+    xhttp.send();
+  }, 10000);
+
 </script>
 
 </html>
