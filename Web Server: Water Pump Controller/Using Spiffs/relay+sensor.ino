@@ -42,6 +42,9 @@ String processor(const String& var){
     Serial.print(relay_state);
     return relay_state;
   }
+  else if(var == "WATERLEVEL"){
+    return display_gauge();
+  }
   return String();
 }
 
@@ -61,7 +64,7 @@ String get_waterlevel(){
       Serial.println("motor turned off at desired water level");
     }
     
-    if(water_level >= 60){ //water is about to overflow then turn off the motor
+    if(water_level >= 90){ //water is about to overflow then turn off the motor
       digitalWrite(relay_pin, LOW);
       Serial.println("motor was about to overflow");
     }
@@ -75,6 +78,18 @@ String get_waterlevel(){
      
      return String(distance_waterToTankTop);
   }
+}
+
+String display_gauge(){
+  if(isnan(water_level)){
+      Serial.println("water level not detected!");
+      return "";
+  }
+  else {
+      Serial.println("water level %: ");
+      Serial.println(water_level); //for the chart
+      return String(water_level);
+  } 
 }
 
 void setup(){
@@ -125,6 +140,10 @@ void setup(){
     request->send(SPIFFS, "/index.html", String(), false, processor);
   });
 
+  server.on("/water_level", HTTP_GET, [](AsyncWebServerRequest *request){
+    request->send_P(200, "text/plain", display_gauge().c_str());
+  });
+  
   // Send a GET request to <ESP_IP>/get?input1=<inputMessage>
   server.on("/get", HTTP_GET, [] (AsyncWebServerRequest *request) {
     String inputMessage;
