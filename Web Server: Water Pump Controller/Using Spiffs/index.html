@@ -18,7 +18,7 @@
       margin: 0 auto;
       border-left: 2px solid black;
       border-right: 2px solid black;
-      padding: 4%;
+      padding: 10px;
     }
 
     h3,
@@ -40,23 +40,6 @@
     p {
       font-size: 1.5rem;
     }
-
-    .button {
-      display: inline-block;
-      background-color: #008CBA;
-      border: none;
-      border-radius: 4px;
-      color: white;
-      padding: 16px 40px;
-      text-decoration: none;
-      font-size: 30px;
-      margin: 2px;
-      cursor: pointer;
-    }
-
-    .button2 {
-      background-color: #f44336;
-    }
   </style>
   <title>Water Tank Controller</title>
 </head>
@@ -66,11 +49,24 @@
   <hr>
 
   <h4>Enter Tank Depth to Get Started</h4>
+  <p>Current Tank Depth is <strong> %TANKDEPTH%</strong></p>
+
+  <p>Do you wish to change the depth of the tank?</p>
+  <label for="check_yes">
+    <input type="radio" id="check_yes" name="tank_depth" />
+    Yes
+  </label>
+  <label for="check_no">
+    <input type="radio" id="check_no" name="tank_depth" />
+    No
+  </label>
+
+
   <form action="/get">
     <div class="form-group">
       <label for="depth">Depth of Water Tank</label>
       <input type="text" class="form-control" id="depth" aria-describedby="emailHelp" placeholder="Tank Depth (cm)"
-        name="input1" min="1" max="400" required>
+        name="input1" min="1" max="400" disabled="disabled">
       <small id="depth_help" class="form-text text-warning">Please enter tank depth for smooth working of the
         controller</small>
     </div>
@@ -81,25 +77,12 @@
 
   <h4>Water Pump On/Off</h4>
   <p>Motor is <strong> %STATE%</strong></p>
-  <p><a href="/motor_on"><button class="button">ON</button></a></p>
-  <p><a href="/motor_off"><button class="button button2">OFF</button></a></p>
-
-  <!-- <a href="/motor_on" class="btn btn-primary btn-lg btn-outline-success" role="button" aria-pressed="true"> On
+  <a href="/motor_on" class="btn btn-primary btn-lg active btn-outline-success" role="button" aria-pressed="true"> On
   </a>
-  <a href="/motor_off" class="btn btn-primary btn-lg btn-outline-danger" role="button" aria-pressed="true"> Off
-  </a> -->
+  <a href="/motor_off" class="btn btn-primary btn-lg active btn-outline-danger" role="button" aria-pressed="true"> Off
+  </a>
 
   <br><br>
-
-  <!-- <form action="/get">
-    Please enter the DEPTH of your water tank: <input type="text" name="input1" min="1" max="400" required>
-    <input type="submit" value="Submit">
-  </form> -->
-
-  <!-- <form action="/get">
-    input2: <input type="text" name="input2">
-    <input type="submit" value="Submit">
-  </form><br> -->
 
   <p>
   <h3>Current Water Level</h3>
@@ -115,7 +98,7 @@
     <div class="form-group">
       <label for="depth">What percentage of tank do you wish to fill?</label>
       <input type="text" class="form-control" id="waterlevel" aria-describedby="emailHelp"
-        placeholder="Water Level To Fill (%)" name="input2" min="1" max="100" required>
+        placeholder="Water Level To Fill (percentage)" name="input2" min="1" max="100" required>
       <small id="level_help" class="form-text text-warning">Enter water level according to the current capacity of the
         tank.</small>
     </div>
@@ -185,6 +168,22 @@
     xhttp.send();
   }, 10000);
 
+</script>
+
+<script src="https://code.jquery.com/jquery-3.6.0.js" integrity="sha256-H+K7U5CnXl1h5ywQfKtSj8PCmoN9aaq30gDh27Xc0jk="
+  crossorigin="anonymous"></script>
+
+<script>
+  $(function () {
+    $("input[name='tank_depth']").click(function () {
+      if ($("#check_yes").is(":checked")) {
+        $("#depth").removeAttr("disabled");
+        $("#depth").focus();
+      } else {
+        $("#depth").attr("disabled", "disabled");
+      }
+    });
+  });
 </script>
 
 </html>
