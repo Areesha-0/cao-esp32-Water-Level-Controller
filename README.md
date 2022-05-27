@@ -25,7 +25,7 @@ This implementation has the following features:
 * Allows the user to select option for filling the tank upto 30%, 50% or 75%
 * Displays multiple alerts on web dashboard and provides notifications on mobile phone
 
-## Materails Required
+## Materials Required
 * ESP-32 
 * Water Submursive Pump
 * Ultrasonic Sensor HC-SR04
