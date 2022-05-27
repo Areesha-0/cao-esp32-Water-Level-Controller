@@ -6,8 +6,8 @@ This water pump controller has two implementations using Arduino IDE. One is wit
 This implementation has the following features:
 * Motor can be turned on and off 
 * Motor turns off automatically when water level reaches 95%
-* User can input the percentage to which you want to fill the tank
-* User has to provide the depth of your tank before installation but can also edit it later
+* User can input the percentage to which he wants to fill the tank
+* User has to provide the depth of tank before installation but can also edit it later
 * Saves tank depth and desired water level permanently and updates it when changed by the user
 * Saves and remembers the state of  motor and above mentioned information in case load shedding or wifi unavailability occurs
 * Reconnects to wifi automatically
