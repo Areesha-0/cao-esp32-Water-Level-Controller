@@ -11,42 +11,18 @@
     integrity="sha384-pprn3073KE6tl6bjs2QrFaJGz5/SUsLqktiwsUTF55Jfv3qYSDhgCecCxMW52nD2"
     crossorigin="anonymous"></script>
   <script src="https://code.highcharts.com/highcharts.js"></script>
-  <style>
-    body {
-      min-width: 310px;
-      max-width: 900px;
-      margin: 0 auto;
-      border-left: 2px solid black;
-      border-right: 2px solid black;
-      padding: 10px;
-    }
-
-    h3,
-    h4,
-    h2 {
-      color: rgb(61, 61, 61);
-      font-family: Arial;
-      font-size: 2.1rem;
-      padding: 1.5vh;
-    }
-
-    h1 {
-      color: black;
-      padding: 4vh;
-      text-align: center;
-      padding-bottom: 0;
-    }
-
-    p {
-      font-size: 1.5rem;
-    }
-  </style>
+  <link rel="stylesheet" type="text/css" href="style.css">
   <title>Water Tank Controller</title>
 </head>
 
 <body>
   <h1>Water Tank Controller</h1>
   <hr>
+
+  <p>
+    <h3>Please note:</h3>
+    <p><span id="prompts">%PROMPT%</span></p>
+    </p>
 
   <h4>Enter Tank Depth to Get Started</h4>
   <p>Current Tank Depth is <strong> %TANKDEPTH%</strong></p>
@@ -60,7 +36,6 @@
     <input type="radio" id="check_no" name="tank_depth" />
     No
   </label>
-
 
   <form action="/get">
     <div class="form-group">
@@ -86,8 +61,7 @@
 
   <p>
   <h3>Current Water Level</h3>
-  <span id="water_level">%WATERLEVEL%</span>
-  <sup>&percnt;</sup>
+  <p><span id="water_level">%WATERLEVEL%</span> <sup>&percnt;</sup></p>
   </p>
 
   <br>
@@ -113,6 +87,9 @@
   <hr>
 
 </body>
+
+<script src="https://code.jquery.com/jquery-3.6.0.js" integrity="sha256-H+K7U5CnXl1h5ywQfKtSj8PCmoN9aaq30gDh27Xc0jk="
+crossorigin="anonymous"></script>
 
 <script>
   var chartT = new Highcharts.Chart({
@@ -164,16 +141,22 @@
         document.getElementById("water_level").innerHTML = this.responseText;
       }
     };
-    xhttp.open("GET", "/water_level", true);
+    xhttp.open("GET", "/water_level", true); //for current water level
     xhttp.send();
   }, 10000);
 
-</script>
+  
+  setInterval(function () {
+    var xhttp = new XMLHttpRequest();
+    xhttp.onreadystatechange = function () {
+      if (this.readyState == 4 && this.status == 200) {
+        document.getElementById("prompts").innerHTML = this.responseText;
+      }
+    };
+    xhttp.open("GET", "/prompt", true);
+    xhttp.send();
+  }, 3000);
 
-<script src="https://code.jquery.com/jquery-3.6.0.js" integrity="sha256-H+K7U5CnXl1h5ywQfKtSj8PCmoN9aaq30gDh27Xc0jk="
-  crossorigin="anonymous"></script>
-
-<script>
   $(function () {
     $("input[name='tank_depth']").click(function () {
       if ($("#check_yes").is(":checked")) {
