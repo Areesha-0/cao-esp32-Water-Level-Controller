@@ -10,32 +10,59 @@
 const char* ssid = "muhammadasif7";
 const char* password = "asif1972";
 
-// Stores relay state
-String relay_state;
+//params recieved in urls
 const char* PARAM_INPUT_1 = "input1"; //getting tank depth
-const char* PARAM_INPUT_2 = "input2"; //getting level until which the tank should be filled
+const char* PARAM_INPUT_2 = "input2"; //getting desired water level
 
+//esp32 gpio pins
 const int trig_pin = 33;
 const int echo_pin = 32;
 const int relay_pin = 13;
 
+//tank depth and water level measurements
 float tank_depth = 0;
 float water_level = 0; //calculated using the ultrasonic sensor
 float desired_waterlevel = 0; //given by user
 
 bool motor_state; //saves to nvs
+String relay_state; // Stores relay state
 
-Preferences preferences;
+Preferences preferences; 
 Ultrasonic ultrasonic_sensor(trig_pin, echo_pin);
 
-// Create AsyncWebServer object on port 80
-AsyncWebServer server(80);
+AsyncWebServer server(80); // Create AsyncWebServer object on port 80
 
-void notFound(AsyncWebServerRequest *request) {
+//prints if wifi is connected
+void WiFiStationConnected(WiFiEvent_t event, WiFiEventInfo_t info)
+{
+  Serial.println("Connected to AP successfully!");
+}
+
+//prints wifi's IP Address
+void WiFiGotIP(WiFiEvent_t event, WiFiEventInfo_t info)
+{
+  Serial.println("WiFi connected");
+  Serial.println("IP address: ");
+  Serial.println(WiFi.localIP());
+}
+
+//tries to reconnect to wifi
+void WiFiStationDisconnected(WiFiEvent_t event, WiFiEventInfo_t info)
+{
+  Serial.println("Disconnected from WiFi access point");
+  Serial.print("WiFi lost connection. Reason: ");
+  Serial.println(info.disconnected.reason);
+  Serial.println("Trying to Reconnect");
+  WiFi.begin(ssid, password);
+}
+
+//informs if server not available
+void notFound(AsyncWebServerRequest *request) 
+{
   request->send(404, "text/plain", "Not found");
 }
 
-// Replaces placeholder with relay's state value
+// Replaces placeholders in html 
 String processor(const String& var){
   Serial.println(var);
   if(var == "STATE"){
@@ -49,21 +76,24 @@ String processor(const String& var){
     return relay_state;
   }
   else if(var == "WATERLEVEL"){
-    return display_gauge();
+    return display_waterlevel();
   }
     else if(var == "TANKDEPTH"){
     return display_depth();
+  }
+    else if(var == "PROMPT"){
+    return display_prompt();
   }
   return String();
 }
 
 String get_waterlevel(){
-  //read distance
   float distance_waterToTankTop = ultrasonic_sensor.read();
+  //calculating water level from the given sensor reading
   water_level = tank_depth - distance_waterToTankTop ;
   water_level = (water_level / tank_depth) * 100;
 
-  Serial.println("depth: ");
+  Serial.println("tank depth: ");
   Serial.println(tank_depth);
   
   if(isnan(distance_waterToTankTop)){
@@ -71,32 +101,33 @@ String get_waterlevel(){
      return "";   
   }
   else{ 
-    if(water_level >= desired_waterlevel){ //water is about to reach the limit set
+    //turns motor off if water level reaches the requested limit
+    if(water_level >= desired_waterlevel)
+    { 
       digitalWrite(relay_pin, LOW);
       Serial.println("motor turned off at desired water level");
+      
+      preferences.putBool("state", 0); //saving state in non volatile storage of esp
+      Serial.printf("State saved: 0");
+    }
+    
+    //motor turns off if motor is about to overflow
+    if(water_level >= 95)
+    { 
+      digitalWrite(relay_pin, LOW);
+      Serial.println("motor was about to overflow");
+      
       preferences.putBool("state", 0);
       Serial.printf("State saved: 0");
     }
     
-    if(water_level >= 90){ //water is about to overflow then turn off the motor
-      digitalWrite(relay_pin, LOW);
-      Serial.println("motor was about to overflow");
-      preferences.putBool("state", 0);
-      Serial.printf("State saved: 0");
-    }
-
-     Serial.println("desired water level (cm): ");
-     Serial.println(desired_waterlevel); //for the chart
-     Serial.println("water level (cm): ");
-     Serial.println(distance_waterToTankTop); //for the chart
-     Serial.println("water level percentage: ");
-     Serial.println(water_level); //for the chart
-     
-     return String(distance_waterToTankTop);
+    print_details();
+    return String(distance_waterToTankTop);
   }
 }
 
-String display_gauge(){
+String display_waterlevel()
+{
   if(isnan(water_level)){
       Serial.println("water level not detected!");
       return "";
@@ -106,8 +137,26 @@ String display_gauge(){
   } 
 }
 
-String display_depth(){
-  if(isnan(tank_depth)){
+String display_prompt(){
+  if(water_level >= 90){
+    return "Water tank is about to overflow.";
+  }
+  
+  else if(water_level >= desired_waterlevel){
+    return "Water tank turned off. Water reached the given water level";
+  }
+  
+  else if(water_level <=10){
+    return "Water tank is almost empty. Please turn on the motor.";
+  }
+  
+  else return "";
+}
+
+String display_depth()
+{
+  if(isnan(tank_depth))
+  {
       Serial.println("tank depth not detected!");
       return "";
   }
@@ -117,44 +166,57 @@ String display_depth(){
 }
 
 void print_details(){
-  
+     Serial.println("desired water level (cm): ");
+     Serial.println(desired_waterlevel);
+     Serial.println("current water level percentage: ");
+     Serial.println(water_level); 
 }
+
 void setup(){
-  // Serial port for debugging purposes
-  Serial.begin(115200);
 
+  Serial.begin(115200);  // Serial port for debugging purposes
+
+  WiFi.disconnect(true); // delete old config
+
+  delay(1000);
+
+  //wifi connection and reconnection handling
+  WiFi.onEvent(WiFiStationConnected, SYSTEM_EVENT_STA_CONNECTED);
+  WiFi.onEvent(WiFiGotIP, SYSTEM_EVENT_STA_GOT_IP);
+  WiFi.onEvent(WiFiStationDisconnected, SYSTEM_EVENT_STA_DISCONNECTED);
+
+  WiFi.begin(ssid, password);
+    
+  Serial.println();
+  Serial.println();
+  Serial.println("Wait for WiFi... ");
+
+  //creating namespaces in read write mode and reading values
   preferences.begin("tank_depth", false);
-  tank_depth = preferences.getFloat("depth",0); //returns default value 0 if it does not have depth 
-  
- //Create a namespace called "motor_state"
-  preferences.begin("motor_state", false); //read write mode
-  motor_state = preferences.getBool("state", false);   // read the last motor state from flash memory
+  tank_depth = preferences.getFloat("depth",0); //returns default value 0 if it depth is not mentioned
+  preferences.begin("motor_state", false); 
+  motor_state = preferences.getBool("state", false);  // read the last motor state from flash memory
 
-  //relay is in NC configuration
+  //relay is in Normally Closed configuration
   pinMode(relay_pin, OUTPUT);
   digitalWrite(relay_pin, motor_state);
 
-
-  // Initialize SPIFFS
-  if (! SPIFFS.begin ()) {
+  // Initializing SPIFFS
+  if (! SPIFFS.begin ()) 
+  {
     Serial.println ("An Error has occurred while mounting SPIFFS");
     return;
   }
-
-  // Connect to Wi-Fi
-  WiFi.begin(ssid, password);
-  while (WiFi.status() != WL_CONNECTED) {
-    delay(1000);
-    Serial.println("Connecting to WiFi..");
-  }
-
-  // Print ESP32 Local IP Address
-  Serial.println(WiFi.localIP());
 
    server.on("/", HTTP_GET, [](AsyncWebServerRequest *request){
     request->send(SPIFFS, "/index.html");
   });
 
+  // Route to load style.css file
+  server.on("/style.css", HTTP_GET, [](AsyncWebServerRequest *request){
+    request->send(SPIFFS, "/style.css", "text/css");
+  });
+  
   server.on ("/distance", HTTP_GET, [] (AsyncWebServerRequest * request) {
     request-> send_P(200, "text / plain", get_waterlevel(). c_str ());
   });
@@ -177,6 +239,7 @@ void setup(){
   // Route to set GPIO to LOW
   server.on("/motor_off", HTTP_GET, [](AsyncWebServerRequest *request){
     digitalWrite(relay_pin, LOW);    
+    
     // save the LED state in flash memory
     preferences.putBool("state", 0);
     Serial.printf("State saved: 0");
@@ -185,13 +248,14 @@ void setup(){
   });
 
   server.on("/water_level", HTTP_GET, [](AsyncWebServerRequest *request){
-    request->send_P(200, "text/plain", display_gauge().c_str());
+    request->send_P(200, "text/plain", display_waterlevel().c_str());
   });
   
   // Send a GET request to <ESP_IP>/get?input1=<inputMessage>
   server.on("/get", HTTP_GET, [] (AsyncWebServerRequest *request) {
     String inputMessage;
     String inputParam;
+    
     // GET input1 value on <ESP_IP>/get?input1=<inputMessage>
     if (request->hasParam(PARAM_INPUT_1)) {
       inputMessage = request->getParam(PARAM_INPUT_1)->value();
@@ -201,10 +265,10 @@ void setup(){
       Serial.println(inputMessage);
       
       tank_depth = inputMessage.toFloat(); //setting tank depth for program
-      
       preferences.putFloat("depth", tank_depth); //saving depth given by the user
     }
 
+    // GET input2 value on <ESP_IP>/get?input2=<inputMessage>
     else if (request->hasParam(PARAM_INPUT_2)) {
       inputMessage = request->getParam(PARAM_INPUT_2)->value();
       inputParam = PARAM_INPUT_2;
@@ -214,19 +278,22 @@ void setup(){
       
       desired_waterlevel = inputMessage.toFloat(); //saving water level
     }
-    
-    else {
+    else 
+    {
       inputMessage = "No message sent";
       inputParam = "none";
     }
+    
     request->send(200, "text/html", "HTTP GET request sent to your ESP on input field (" 
                                      + inputParam + ") with value: " + inputMessage +
                                      "<br><a href=\"/\">Return to Home Page</a>");
   });
+  
   // Start server
   server.onNotFound(notFound);
   server.begin();
 }
   
 void loop() {
+    delay(1000);
 }
