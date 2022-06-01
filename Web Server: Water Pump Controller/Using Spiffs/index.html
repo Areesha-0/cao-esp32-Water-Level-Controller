@@ -20,9 +20,9 @@
   <hr>
 
   <p>
-    <h3>Please note:</h3>
-    <p><span id="prompts">%PROMPT%</span></p>
-    </p>
+  <h3>Please note:</h3>
+  <p><span id="prompts">%PROMPT%</span></p>
+  </p>
 
   <h4>Enter Tank Depth to Get Started</h4>
   <p>Current Tank Depth is <strong> %TANKDEPTH%</strong></p>
@@ -89,7 +89,7 @@
 </body>
 
 <script src="https://code.jquery.com/jquery-3.6.0.js" integrity="sha256-H+K7U5CnXl1h5ywQfKtSj8PCmoN9aaq30gDh27Xc0jk="
-crossorigin="anonymous"></script>
+  crossorigin="anonymous"></script>
 
 <script>
   var chartT = new Highcharts.Chart({
@@ -130,9 +130,9 @@ crossorigin="anonymous"></script>
         }
       }
     };
-    xhttp.open("GET", "/distance", true);
+    xhttp.open("GET", "/level", true);
     xhttp.send();
-  }, 3000);
+  }, 2000);
 
   setInterval(function () {
     var xhttp = new XMLHttpRequest();
@@ -145,7 +145,7 @@ crossorigin="anonymous"></script>
     xhttp.send();
   }, 10000);
 
-  
+
   setInterval(function () {
     var xhttp = new XMLHttpRequest();
     xhttp.onreadystatechange = function () {
