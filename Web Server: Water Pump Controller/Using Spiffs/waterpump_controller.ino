@@ -232,14 +232,12 @@ void setup()
   server.on("/style.css", HTTP_GET, [](AsyncWebServerRequest *request)
             { request->send(SPIFFS, "/style.css", "text/css"); });
 
-  server.on("/distance", HTTP_GET, [](AsyncWebServerRequest *request)
-            { request->send_P(200, "text / plain", get_waterlevel().c_str()); });
-
+  //for plotting water level on the chart
   server.on("/level", HTTP_GET, [](AsyncWebServerRequest *request){
     float level = tank_depth - get_waterlevel().toFloat();
     String get_level = String("");
     get_level.concat(level);
-    request-> send_P(200, "text / plain", get_level.c_str()); });
+    request-> send_P(200, "text / plain", get_level.c_str()); }); 
 
   server.on("/", HTTP_GET, [](AsyncWebServerRequest *request)
             { request->send(SPIFFS, "/index.html", String(), false, processor); });
@@ -288,7 +286,7 @@ void setup()
       inputMessage = request->getParam(PARAM_INPUT_2)->value();
       inputParam = PARAM_INPUT_2;
       
-      Serial.println("TURNNNNN of the motor at water level (%): ");
+      Serial.println("Turn off the motor at water level (%): ");
       
       desired_waterlevel = inputMessage.toFloat(); //saving water level
       Serial.println(desired_waterlevel);
