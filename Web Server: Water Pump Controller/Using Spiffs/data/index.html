@@ -1,0 +1,172 @@
+<!DOCTYPE HTML>
+<html>
+
+<head>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <!-- CSS only -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.2.0-beta1/dist/css/bootstrap.min.css" rel="stylesheet"
+    integrity="sha384-0evHe/X+R7YkIZDRvuzKMRqM+OrBnVFBL6DOitfPri4tjfHxaWutUpFmBp4vmVor" crossorigin="anonymous">
+  <!-- JavaScript Bundle with Popper -->
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.0-beta1/dist/js/bootstrap.bundle.min.js"
+    integrity="sha384-pprn3073KE6tl6bjs2QrFaJGz5/SUsLqktiwsUTF55Jfv3qYSDhgCecCxMW52nD2"
+    crossorigin="anonymous"></script>
+  <script src="https://code.highcharts.com/highcharts.js"></script>
+  <link rel="stylesheet" type="text/css" href="style.css">
+  <title>Water Tank Controller</title>
+</head>
+
+<body>
+  <h1>Water Tank Controller</h1>
+  <hr>
+
+  <p>
+  <h3>Please note:</h3>
+  <p><span id="prompts">%PROMPT%</span></p>
+  </p>
+
+  <h4>Enter Tank Depth to Get Started</h4>
+  <p>Current Tank Depth is <strong> %TANKDEPTH%</strong></p>
+
+  <p>Do you wish to change the depth of the tank?</p>
+  <label for="check_yes">
+    <input type="radio" id="check_yes" name="tank_depth" />
+    Yes
+  </label>
+  <label for="check_no">
+    <input type="radio" id="check_no" name="tank_depth" />
+    No
+  </label>
+
+  <form action="/get">
+    <div class="form-group">
+      <label for="depth">Depth of Water Tank</label>
+      <input type="text" class="form-control" id="depth" aria-describedby="emailHelp" placeholder="Tank Depth (cm)"
+        name="input1" min="1" max="400" disabled="disabled">
+      <small id="depth_help" class="form-text text-warning">Please enter tank depth for smooth working of the
+        controller</small>
+    </div>
+    <button type="submit" class="btn btn-primary" value="Submit">Save</button>
+  </form>
+
+  <br>
+
+  <h4>Water Pump On/Off</h4>
+  <p>Motor is <strong> %STATE%</strong></p>
+  <a href="/motor_on" class="btn btn-primary btn-lg active btn-outline-success" role="button" aria-pressed="true"> On
+  </a>
+  <a href="/motor_off" class="btn btn-primary btn-lg active btn-outline-danger" role="button" aria-pressed="true"> Off
+  </a>
+
+  <br><br>
+
+  <p>
+  <h3>Current Water Level</h3>
+  <p><span id="water_level">%WATERLEVEL%</span> <sup>&percnt;</sup></p>
+  </p>
+
+  <br>
+
+  <h4>Automate Your Motor</h4>
+  <h6>If you wish to automate your water tank, fill in the field below and turn on the motor</h6>
+  <form action="/get">
+    <div class="form-group">
+      <label for="depth">What percentage of tank do you wish to fill?</label>
+      <input type="text" class="form-control" id="waterlevel" aria-describedby="emailHelp"
+        placeholder="Water Level To Fill (percentage)" name="input2" min="1" max="100" required>
+      <small id="level_help" class="form-text text-warning">Enter water level according to the current capacity of the
+        tank.</small>
+    </div>
+    <button type="submit" class="btn btn-primary" value="Submit">Save</button>
+  </form>
+
+  <br>
+
+  <h4>Water Level in the Tank (cm)</h4>
+  <div id="chart-distance" class="container"></div>
+  <br><br>
+  <hr>
+
+</body>
+
+<script src="https://code.jquery.com/jquery-3.6.0.js" integrity="sha256-H+K7U5CnXl1h5ywQfKtSj8PCmoN9aaq30gDh27Xc0jk="
+  crossorigin="anonymous"></script>
+
+<script>
+  var chartT = new Highcharts.Chart({
+    chart: { renderTo: 'chart-distance' },
+    title: { text: 'Water Level of the Tank' },
+    series: [{
+      showInLegend: false,
+      data: []
+    }],
+    plotOptions: {
+      line: {
+        animation: false,
+        dataLabels: { enabled: true }
+      },
+      series: { color: '#059e8a' }
+    },
+    xAxis: {
+      type: 'datetime',
+      dateTimeLabelFormats: { second: '%H:%M:%S' }
+    },
+    yAxis: {
+      title: { text: 'Distance from top of tank to water level' }
+    },
+    credits: { enabled: false }
+  });
+
+  setInterval(function () {
+    var xhttp = new XMLHttpRequest();
+    xhttp.onreadystatechange = function () {
+      if (this.readyState == 4 && this.status == 200) {
+        var x = (new Date()).getTime(),
+          y = parseFloat(this.responseText);
+        //console.log(this.responseText);
+        if (chartT.series[0].data.length > 40) {
+          chartT.series[0].addPoint([x, y], true, true, true);
+        } else {
+          chartT.series[0].addPoint([x, y], true, false, true);
+        }
+      }
+    };
+    xhttp.open("GET", "/level", true);
+    xhttp.send();
+  }, 2000);
+
+  setInterval(function () {
+    var xhttp = new XMLHttpRequest();
+    xhttp.onreadystatechange = function () {
+      if (this.readyState == 4 && this.status == 200) {
+        document.getElementById("water_level").innerHTML = this.responseText;
+      }
+    };
+    xhttp.open("GET", "/water_level", true); //for current water level
+    xhttp.send();
+  }, 10000);
+
+
+  setInterval(function () {
+    var xhttp = new XMLHttpRequest();
+    xhttp.onreadystatechange = function () {
+      if (this.readyState == 4 && this.status == 200) {
+        document.getElementById("prompts").innerHTML = this.responseText;
+      }
+    };
+    xhttp.open("GET", "/prompt", true);
+    xhttp.send();
+  }, 3000);
+
+  $(function () {
+    $("input[name='tank_depth']").click(function () {
+      if ($("#check_yes").is(":checked")) {
+        $("#depth").removeAttr("disabled");
+        $("#depth").focus();
+      } else {
+        $("#depth").attr("disabled", "disabled");
+      }
+    });
+  });
+</script>
+
+</html>
